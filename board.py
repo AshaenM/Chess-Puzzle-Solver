@@ -24,6 +24,7 @@ class Board:
         self.captured_pieces = []
         self.display_indexes = False
         self.king_in_check = False
+        self.checking_piece = None
         self.add_squares()
 
     def add_squares(self):
@@ -108,19 +109,24 @@ class Board:
         #update all data when a move is made
         if square_to in self.occupied_squares:
             #handle captures
+            self.pieces.remove(piece_from)
+            self.occupied_squares.remove(piece_from.square)
+            
             for piece_to in self.pieces:
                 if piece_to.square == square_to:
-                    #print("UPDATECAPUTRE")
-                    self.capture(piece_from, piece_to)
+                    self.pieces.remove(piece_to)
+                    self.occupied_squares.remove(piece_to.square)
+                    new_p = Piece(piece_from.piece_type, piece_from.color, square_to, self.images)
+                    self.pieces.append(new_p)
+                    self.occupied_squares.append(new_p.square)
                     break
         else:
-            #print("NORMAL MOVE UPDATE")
             #normal move
             self.occupied_squares.remove(piece_from.square)
             self.pieces.remove(piece_from)
-            piece_from.square = square_to
-            self.pieces.append(piece_from)
-            self.occupied_squares.append(piece_from.square)
+            new_p = Piece(piece_from.piece_type, piece_from.color, square_to, self.images)
+            self.pieces.append(new_p)
+            self.occupied_squares.append(new_p.square)
     
     def undo_to_previous(self, piece, original_piece_square, square_to):
         #undo a move
@@ -263,6 +269,7 @@ class Board:
                 attacking_piece, s = attack_square
                 if s == square:
                     pieces_saying_check.append(attacking_piece)
+                    self.checking_piece = attacking_piece
                     self.king_in_check = True
                     return True
             self.king_in_check = False
@@ -312,7 +319,7 @@ class Board:
                                     if opponent_piece.piece_type.lower() in ['n', 'p']:
                                         break  # Knights and pawns move only once in each direction
                                     if next_square in self.occupied_squares:
-                                        break  #Stopp if an occupied square is encountered
+                                        break  #Stop if an occupied square is encountered
                                 else:
                                     break
 
@@ -341,25 +348,21 @@ class Board:
                     # Capture left
                     if piece.square.x > 0:
                         capture_left_square = Square(piece.square.x - 1, piece.square.y - 1, piece.square.idx - 9)
-                        if capture_left_square in [p.square for p in self.pieces if p.color == "white"]:
-                            move = (piece, capture_left_square)
-                            for p in self.pieces:
-                                if p.square == capture_left_square:
-                                    captured_piece = p
-                            if captured_piece != None and (not self.king_in_check or can_move_resolve_check(move) or can_capture_checking_piece(captured_piece)):
-                                possible_moves.append((piece, capture_left_square))
-                                possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x - 1, piece.square.y - 1, piece.square.x, True))
+                        captured_piece = next((p for p in self.pieces if p.square == capture_left_square and p.color == "white"), None)
+                        
+                        if captured_piece and (not self.king_in_check or can_move_resolve_check((piece, capture_left_square)) or captured_piece == self.checking_piece):
+                            possible_moves.append((piece, capture_left_square))
+                            possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x - 1, piece.square.y - 1, piece.square.x, True))
 
                     # Capture right
                     if piece.square.x < 7:
                         capture_right_square = Square(piece.square.x + 1, piece.square.y - 1, piece.square.idx - 7)
-                        if capture_right_square in [p.square for p in self.pieces if p.color == "white"]:
-                            move = (piece, capture_right_square)
-                            for p in self.pieces:
-                                if p.square == capture_right_square:
-                                    captured_piece = p
-                            if captured_piece != None and (not self.king_in_check or can_move_resolve_check(move) or can_capture_checking_piece(captured_piece)):
-                                possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x + 1, piece.square.y - 1, piece.square.x, True))
+                        captured_piece = next((p for p in self.pieces if p.square == capture_right_square and p.color == "white"), None)
+                        
+                        if captured_piece and (not self.king_in_check or can_move_resolve_check((piece, capture_right_square)) or captured_piece == self.checking_piece):
+                            possible_moves.append((piece, capture_right_square))
+                            possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x + 1, piece.square.y - 1, piece.square.x, True))
+
                                 
                 elif piece.piece_type == "P":  # white pawn
                     # Move forward
@@ -373,26 +376,21 @@ class Board:
                     # Capture left
                     if piece.square.x > 0:
                         capture_left_square = Square(piece.square.x - 1, piece.square.y + 1, piece.square.idx + 7)
-                        if capture_left_square in [p.square for p in self.pieces if p.color == "black"]:
-                            move = (piece, capture_left_square)
-                            for p in self.pieces:
-                                if p.square == capture_left_square:
-                                    captured_piece = p
-                                    if captured_piece != None and (not self.king_in_check or can_move_resolve_check(move) or can_capture_checking_piece(captured_piece)):
-                                        possible_moves.append((piece, capture_left_square))
-                                        possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x - 1, piece.square.y + 1, piece.square.x, True))
+                        captured_piece = next((p for p in self.pieces if p.square == capture_left_square and p.color == "black"), None)
+
+                        if captured_piece and (not self.king_in_check or can_move_resolve_check((piece, capture_left_square)) or captured_piece == self.checking_piece):
+                            possible_moves.append((piece, capture_left_square))
+                            possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x - 1, piece.square.y + 1, piece.square.x, True))
 
                     # Capture right
                     if piece.square.x < 7:
                         capture_right_square = Square(piece.square.x + 1, piece.square.y + 1, piece.square.idx + 9)
-                        if capture_right_square in [p.square for p in self.pieces if p.color == "black"]:
-                            move = (piece, capture_right_square)
-                            for p in self.pieces:
-                                if p.square == capture_right_square:
-                                    captured_piece = p
-                                    if captured_piece != None and (not self.king_in_check or can_move_resolve_check(move) or can_capture_checking_piece(captured_piece)):
-                                        possible_moves.append((piece, capture_right_square))
-                                        possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x + 1, piece.square.y + 1, piece.square.x, True))
+                        captured_piece = next((p for p in self.pieces if p.square == capture_right_square and p.color == "black"), None)
+
+                        if captured_piece and (not self.king_in_check or can_move_resolve_check((piece, capture_right_square)) or captured_piece == self.checking_piece):
+                            possible_moves.append((piece, capture_right_square))
+                            possible_moves_in_chess_notation.append(Move(piece.piece_type, piece.square.x + 1, piece.square.y + 1, piece.square.x, True))
+
                                             
                 elif piece.piece_type.lower() in ["r", "n", "b", "q"]:  # rooks, knights, bishops, queens
                     directions = {
@@ -410,24 +408,23 @@ class Board:
                             if 0 <= x < 8 and 0 <= y < 8:
                                 next_square = Square(x, y, y * 8 + x + 1)
                                 move = (piece, next_square)
-                                if next_square not in self.occupied_squares:
-                                    if (not self.king_in_check or can_move_resolve_check(move)):
+                                captured_piece = next((p for p in self.pieces if p.square == next_square and p.color != piece.color), None)
+
+                                # Handle empty squares
+                                if not captured_piece:
+                                    if not self.king_in_check or can_move_resolve_check(move):
                                         possible_moves.append((piece, next_square))
                                         possible_moves_in_chess_notation.append(Move(piece.piece_type, x, y))
-                                    if piece.piece_type.lower() == 'n':  # Knights move only once in each direction
+                                    if piece.piece_type.lower() == 'n':  # Knights move only once per direction
                                         break
                                 else:
-                                    # Capture an opponent's piece
-                                    if next_square in [p.square for p in self.pieces if p.color != piece.color]:
-                                        for p in self.pieces:
-                                            if p.square == next_square:
-                                                captured_piece = p
-                                        if captured_piece != None and (not self.king_in_check or can_move_resolve_check(move) or can_capture_checking_piece(captured_piece)):
-                                            possible_moves.append((piece, next_square))
-                                            possible_moves_in_chess_notation.append(Move(piece.piece_type, x, y, iscapture=True))
-                                    break
+                                    # Handle capturing an opponent's piece
+                                    if not self.king_in_check or can_move_resolve_check(move) or can_capture_checking_piece(captured_piece):
+                                        possible_moves.append((piece, next_square))
+                                        possible_moves_in_chess_notation.append(Move(piece.piece_type, x, y, iscapture=True))
+                                    break  # Stop in this direction after capturing
                             else:
-                                break
+                                break  # Stop if out of bounds
 
                 elif piece.piece_type.lower() == "k":  # both color kings
                     king_moves = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]  # All adjacent squares
@@ -450,5 +447,11 @@ class Board:
                                     if (not self.king_in_check or can_move_resolve_check(move) or can_capture_checking_piece(captured_piece)):
                                         possible_moves.append((piece, next_square))
                                         possible_moves_in_chess_notation.append(Move(piece.piece_type, x, y, iscapture=True))
+                                        
+        for piece, square in possible_moves:
+            if square in self.occupied_squares:
+                for p in self.pieces:
+                    if p.piece_type.lower() == "k" and p.square == square:
+                        possible_moves.remove((piece,square))
                                         
         return possible_moves
