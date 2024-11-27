@@ -451,12 +451,4 @@ class Board:
                                         possible_moves.append((piece, next_square))
                                         possible_moves_in_chess_notation.append(Move(piece.piece_type, x, y, iscapture=True))
                                         
-        # Below statements were used when debugging                       
-        # for p in possible_moves:
-        #     print(p)
-        # for p in possible_moves_in_chess_notation:
-        #     print(p)
-        # for o in self.occupied_squares:
-        #     print(o)
-
         return possible_moves

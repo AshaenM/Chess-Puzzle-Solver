@@ -25,15 +25,10 @@ minimax_with_AB_text_button = font.render('Minimax (AB)', True, COLOUR_NAMES["BL
 DFS_text_button = font.render('DFS', True, COLOUR_NAMES["BLACK"])
 Dumbo_text_button = font.render('Dumbo', True, COLOUR_NAMES["BLACK"])
 reset_text_button = font.render('Reset', True, COLOUR_NAMES["BLACK"])
-running = False
-paused = False
 move_set_calculated = None
 current_player = None
-game_status = None
 move_index = None
-duration = False
-normal_move = False
-capture_move = False    
+duration = False   
 
 # ______________________________Checkmate checker_________________________________________
 
@@ -65,12 +60,12 @@ def get_best_move(board, max_depth, player):
         
         for move in possible_moves:
             piece, square_to = move
-            print("FIRST MOVE ", move, 0)
+            #print("FIRST MOVE ", move, 0)
             original_piece_square = piece.square
             board.update(piece, square_to)
             score, sequence = minimax(board, 0, False, max_depth, player, current_sequence=[move])  # Pass first move in the sequence
             board.undo_to_previous(piece, original_piece_square, square_to)
-            print("ORIGINAL POSITION ", board.pieces)
+            #print("ORIGINAL POSITION ", board.pieces)
             if score > best_score:
                 best_score = score
                 best_sequence = sequence
@@ -351,7 +346,6 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
 def dumbo(board, current_player, number_of_moves):
     #The dumb AI that returns the move that captures the most valuable piece if possible else if no captures returns a random move
     global move_set_calculated
-    global game_status
     global move_index
     
     count = 1
@@ -603,7 +597,6 @@ def main():
     #Main loop
     global move_set_calculated
     global current_player
-    global game_status
     global move_index
     global duration
     
