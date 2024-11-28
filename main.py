@@ -7,6 +7,7 @@ import random
 import time
 from move import Move
 from board import Board
+import chess
 
 pygame.init() #initialise the pygame environment
 
@@ -663,6 +664,13 @@ def main():
     board.add_pieces(row_pieces)
     board.draw_pieces()
 
+    my_moves = board.generate_possible_moves(current_player)
+
+    ucis = board.convert_to_uci(my_moves)
+    
+    print(ucis)
+
+    
     running = True
     #Main pygame loop
     while running:

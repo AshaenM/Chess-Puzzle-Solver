@@ -46,13 +46,13 @@ class Move:
         elif self.from_x == 7:
             from_x = "h"      
             
-        if not self.capture and not self.checkmate and (self.piece == "p" or self.piece == "P"):
+        if not self.capture and not self.checkmate and (self.piece.piece_type == "p" or self.piece.piece_type == "P"):
             return f"{to_x}{self.y+1}"
-        if not self.capture and not self.checkmate and (self.piece != "p" or self.piece != "P"):
-            return f"{self.piece}{to_x}{self.y+1}"
-        if self.capture and not self.checkmate and (self.piece == "p" or self.piece == "P"):
+        if not self.capture and not self.checkmate and (self.piece.piece_type != "p" or self.piece.piece_type != "P"):
+            return f"{self.piece.piece_type}{to_x}{self.y+1}"
+        if self.capture and not self.checkmate and (self.piece.piece_type == "p" or self.piece.piece_type == "P"):
             return f"{from_x}x{to_x}{self.y+1}"
-        if self.capture and not self.checkmate and (self.piece != "p" or self.piece != "P"):
-            return f"{self.piece}x{to_x}{self.y+1}"
-        if not self.capture and self.checkmate and (self.piece != "p" or self.piece != "P"):
-            return f"{self.piece}{to_x}{self.y+1}#"
+        if self.capture and not self.checkmate and (self.piece.piece_type != "p" or self.piece.piece_type != "P"):
+            return f"{self.piece.piece_type}x{to_x}{self.y+1}"
+        if not self.capture and self.checkmate and (self.piece.piece_type != "p" or self.piece.piece_type != "P"):
+            return f"{self.piece.piece_type}{to_x}{self.y+1}#"
