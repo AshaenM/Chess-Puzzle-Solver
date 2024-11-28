@@ -30,6 +30,7 @@ move_set_calculated = None
 current_player = None
 move_index = None
 duration = False   
+original_fen = None
 
 # ______________________________Checkmate checker_________________________________________
 
@@ -60,22 +61,23 @@ def get_best_move(board, max_depth, player):
         possible_moves = board.generate_possible_moves(player)
         
         original_position_fen = board.generate_fen()
+        
+        board_1 = chess.Board(original_position_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+        
         row_pieces = []
         board_line = original_position_fen.strip()
         ranks = board_line.split("/")
         for rank in ranks:
             split_strings = [char for char in rank]
             row_pieces.append(split_strings)
-        print(original_position_fen) 
         
         for move in possible_moves:
             piece, square_to = move
-            print("FIRST MOVE ", move, 1)
-            original_piece_square = piece.square
             board.update(piece, square_to)
             score, sequence = minimax(board, 0, False, max_depth, player, current_sequence=[move])  # Pass first move in the sequence
             board.add_pieces(row_pieces)
-            print("ORIGINAL POSITION ", board.pieces)
             if score > best_score:
                 best_score = score
                 best_sequence = sequence
@@ -88,16 +90,15 @@ def get_best_move(board, max_depth, player):
         pos_y = 100
         for move in best_sequence:
             piece, square_to = move
-            for p in board.pieces:
-                if p == piece:
-                    p.square = square_to
             if square_to in board.occupied_squares:
                 if piece.piece_type == "p" or piece.piece_type == "P":
-                    move_obj = Move(piece.piece_type, square_to.x, square_to.y, piece.square.x, iscapture=True)
+                    move_obj = Move(piece, square_to.x, square_to.y, piece.square.x, iscapture=True)
                 else:
-                    move_obj = Move(piece.piece_type, square_to.x, square_to.y, iscapture=True)
+                    move_obj = Move(piece, square_to.x, square_to.y, iscapture=True)
             else:
-                move_obj = Move(piece.piece_type, square_to.x, square_to.y)
+                move_obj = Move(piece, square_to.x, square_to.y)
+            board.update(piece, square_to)
+
             moves.append(move_obj)
             
         for move in moves:
@@ -137,7 +138,6 @@ def minimax(board, depth, isMaximising, max_depth, player, current_sequence=[]):
     for rank in ranks:
         split_strings = [char for char in rank]
         row_pieces.append(split_strings)
-    print(original_position_fen)
             
     if isMaximising:
         best_score = float("-inf")
@@ -148,10 +148,13 @@ def minimax(board, depth, isMaximising, max_depth, player, current_sequence=[]):
             player = "b"
         
         possible_moves = board.generate_possible_moves(player)
+                
+        board_1 = chess.Board(original_position_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+        
         for move in possible_moves:
-            print("THIRD MOVE ", move, 3)
             piece, square_to = move
-            original_piece_square = piece.square
             #Vital area: update move, recursively call minimax with the new board state and player, and undo the move once returned
             board.update(piece, square_to)
             score, sequence = minimax(board, depth + 1, False, max_depth, player, current_sequence + [move])
@@ -168,11 +171,15 @@ def minimax(board, depth, isMaximising, max_depth, player, current_sequence=[]):
             player = "b"
         else:
             player = "w"
+            
+        possible_moves = board.generate_possible_moves(player)
+                
+        board_1 = chess.Board(original_position_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
         
-        for move in board.generate_possible_moves(player):
-            print("SECOND MOVE ", move, 2)
+        for move in possible_moves:
             piece, square_to = move
-            original_piece_square = piece.square
             #Vital area: update move, recursively call minimax with the new board state and player, and undo the move once returned
             board.update(piece, square_to)
             score, sequence = minimax(board, depth + 1, True, max_depth, player, current_sequence + [move])
@@ -189,29 +196,32 @@ def get_best_move_with_AB(board, max_depth, player):
     
     move_index = max_depth
     
+    possible_moves = board.generate_possible_moves(player)
+    
     original_position_fen = board.generate_fen()
+               
     row_pieces = []
     board_line = original_position_fen.strip()
     ranks = board_line.split("/")
     for rank in ranks:
         split_strings = [char for char in rank]
         row_pieces.append(split_strings)
+        
+    board_1 = chess.Board(original_position_fen + " " + player)
+    legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+    possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
     
     if move_set_calculated == None:
         move_set = []
         best_sequence = None
         moves = []
         best_score = float("-inf")
-        possible_moves = board.generate_possible_moves(player)
-        
+               
         for move in possible_moves:
             piece, square_to = move
-            #print("FIRST MOVE ", move, 0)
-            original_piece_square = piece.square
             board.update(piece, square_to)
             score, sequence = minimax_with_AB(board, 0, False, max_depth, player, float("-inf"), float("inf"), current_sequence=[move])  # Pass first move in the sequence
             board.add_pieces(row_pieces)
-            #print("ORIGINAL POSITION ", board.pieces)
             if score > best_score:
                 best_score = score
                 best_sequence = sequence
@@ -224,16 +234,14 @@ def get_best_move_with_AB(board, max_depth, player):
         pos_y = 100
         for move in best_sequence:
             piece, square_to = move
-            for p in board.pieces:
-                if p == piece:
-                    p.square = square_to
             if square_to in board.occupied_squares:
                 if piece.piece_type == "p" or piece.piece_type == "P":
-                    move_obj = Move(piece.piece_type, square_to.x, square_to.y, piece.square.x, iscapture=True)
+                    move_obj = Move(piece, square_to.x, square_to.y, piece.square.x, iscapture=True)
                 else:
-                    move_obj = Move(piece.piece_type, square_to.x, square_to.y, iscapture=True)
+                    move_obj = Move(piece, square_to.x, square_to.y, iscapture=True)
             else:
-                move_obj = Move(piece.piece_type, square_to.x, square_to.y)
+                move_obj = Move(piece, square_to.x, square_to.y)
+            board.update(piece, square_to)
             moves.append(move_obj)
             
         for move in moves:
@@ -282,9 +290,14 @@ def minimax_with_AB(board, depth, isMaximising, max_depth, player, alpha, beta, 
         else:
             player = "b"
         
-        for move in board.generate_possible_moves(player):
+        possible_moves = board.generate_possible_moves(player)
+        
+        board_1 = chess.Board(original_position_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+        
+        for move in possible_moves:
             piece, square_to = move
-            original_piece_square = piece.square
             board.update(piece, square_to)
             score, sequence = minimax(board, depth + 1, False, max_depth, player, alpha, beta, current_sequence + [move])
             board.add_pieces(row_pieces)
@@ -302,10 +315,15 @@ def minimax_with_AB(board, depth, isMaximising, max_depth, player, alpha, beta, 
             player = "b"
         else:
             player = "w"
+            
+        possible_moves = board.generate_possible_moves(player)
         
-        for move in board.generate_possible_moves(player):
+        board_1 = chess.Board(original_position_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+        
+        for move in possible_moves:
             piece, square_to = move
-            original_piece_square = piece.square
             board.update(piece, square_to)
             score, sequence = minimax(board, depth + 1, True, max_depth, player, current_sequence + [move])
             board.add_pieces(row_pieces)
@@ -365,11 +383,11 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
             sequence.append(str(move))
             if square_to in board.occupied_squares:
                 if piece.piece_type == "p" or piece.piece_type == "P":
-                    move_obj = Move(piece.piece_type, square_to.x, square_to.y, piece.square.x, iscapture=True)
+                    move_obj = Move(piece, square_to.x, square_to.y, piece.square.x, iscapture=True)
                 else:
-                    move_obj = Move(piece.piece_type, square_to.x, square_to.y, iscapture=True)
+                    move_obj = Move(piece, square_to.x, square_to.y, iscapture=True)
             else:
-                move_obj = Move(piece.piece_type, square_to.x, square_to.y)
+                move_obj = Move(piece, square_to.x, square_to.y)
             moves.append(move_obj)
             #pygame.time.delay(1000)
             original_piece_square = piece.square
@@ -434,16 +452,16 @@ def dumbo(board, current_player, number_of_moves):
                     if not moves and board.king_in_check:
                         print(highest_valued_piece_capturable)
                         print(piece, square)
-                        move = Move(piece.piece_type, square.x, square.y, original_piece_x, iscapture=True, ischeckmate=True)
+                        move = Move(piece, square.x, square.y, original_piece_x, iscapture=True, ischeckmate=True)
                         break
                     elif not moves and not board.king_in_check:
                         print(highest_valued_piece_capturable)
                         print(piece, square)
-                        move = Move(piece.piece_type, square.x, square.y, original_piece_x, iscapture=True)
+                        move = Move(piece, square.x, square.y, original_piece_x, iscapture=True)
                         break
                     else:
                         print(piece, square)
-                        move = Move(piece.piece_type, square.x, square.y, original_piece_x, iscapture=True)
+                        move = Move(piece, square.x, square.y, original_piece_x, iscapture=True)
                 else:
                     piece_to = None
                     for p in board.pieces:
@@ -456,21 +474,21 @@ def dumbo(board, current_player, number_of_moves):
                     moves = board.generate_possible_moves(current_player)
                     if not moves and board.king_in_check:
                         print(highest_valued_piece_capturable)
-                        move = Move(piece.piece_type, square.x, square.y, iscapture=True, ischeckmate=True)
+                        move = Move(piece, square.x, square.y, iscapture=True, ischeckmate=True)
                         break
                     elif not moves and not board.king_in_check:
                         print(highest_valued_piece_capturable)
-                        move = Move(piece.piece_type, square.x, square.y, iscapture=True)
+                        move = Move(piece, square.x, square.y, iscapture=True)
                         break
                     else:
-                        move = Move(piece.piece_type, square.x, square.y, iscapture=True)
+                        move = Move(piece, square.x, square.y, iscapture=True)
             else:
                 board.update(piece, square)
                 moves = board.generate_possible_moves(current_player)
-                move = Move(piece.piece_type, square.x, square.y)
+                move = Move(piece, square.x, square.y)
                 if not moves and board.king_in_check:
                     print("Checkmate!")
-                    move = Move(piece.piece_type, square.x, square.y, ischeckmate=True)
+                    move = Move(piece, square.x, square.y, ischeckmate=True)
                     screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
                     screen.blit(font.render(str(move), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
                     return_set.append((move, pos_x, pos_y))
@@ -479,7 +497,7 @@ def dumbo(board, current_player, number_of_moves):
                     return return_set
                 elif not moves and not board.king_in_check:
                     print("Stalemate!")
-                    move = Move(piece.piece_type, square.x, square.y)
+                    move = Move(piece, square.x, square.y)
                     screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
                     screen.blit(font.render(str(move), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
                     return_set.append((move, pos_x, pos_y))
@@ -487,7 +505,7 @@ def dumbo(board, current_player, number_of_moves):
                     move_index = move_number
                     return return_set
                 else:
-                    move = Move(piece.piece_type, square.x, square.y)
+                    move = Move(piece, square.x, square.y)
                     
             return_set.append((move, pos_x, pos_y))
                                        
@@ -588,6 +606,8 @@ def check_algorithm_request(event):
 # ______________________________FEN parser_________________________________________
 
 def parse_file(file):
+    global original_fen
+    
     #Parses the textfile and returns the 3 lines separated and formatted
     row_pieces = []
     with open(file, "r") as f:
@@ -595,6 +615,7 @@ def parse_file(file):
 
     # Process the board configuration
     board_line = lines[0].strip()
+    original_fen = board_line
     ranks = board_line.split("/")
 
     for rank in ranks:
@@ -663,14 +684,23 @@ def main():
     board.draw_board()
     board.add_pieces(row_pieces)
     board.draw_pieces()
-
-    my_moves = board.generate_possible_moves(current_player)
-
-    ucis = board.convert_to_uci(my_moves)
     
-    print(ucis)
-
+    # my_legal_moves = board.generate_possible_moves(current_player)
     
+    # fen = original_fen + " " + current_player
+
+    # # Initialize the board
+    # board_1 = chess.Board(fen)
+
+    # # Generate legal moves and convert them to UCI format
+    # legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+
+    # # Print the UCI moves
+    # print(legal_moves_uci)
+    
+    # possible_moves = board.check_for_differences(legal_moves_uci, my_legal_moves)
+    # print("not so dumb my list",possible_moves)
+        
     running = True
     #Main pygame loop
     while running:
