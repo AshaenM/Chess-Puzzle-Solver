@@ -58,6 +58,7 @@ def get_best_move(board, max_depth, player):
         best_sequence = None
         moves = []
         best_score = float("-inf")
+        
         possible_moves = board.generate_possible_moves(player)
         
         original_position_fen = board.generate_fen()
@@ -98,7 +99,6 @@ def get_best_move(board, max_depth, player):
             else:
                 move_obj = Move(piece, square_to.x, square_to.y)
             board.update(piece, square_to)
-
             moves.append(move_obj)
             
         for move in moves:
@@ -196,27 +196,27 @@ def get_best_move_with_AB(board, max_depth, player):
     
     move_index = max_depth
     
-    possible_moves = board.generate_possible_moves(player)
-    
-    original_position_fen = board.generate_fen()
-               
-    row_pieces = []
-    board_line = original_position_fen.strip()
-    ranks = board_line.split("/")
-    for rank in ranks:
-        split_strings = [char for char in rank]
-        row_pieces.append(split_strings)
-        
-    board_1 = chess.Board(original_position_fen + " " + player)
-    legal_moves_uci = [move.uci() for move in board_1.legal_moves]
-    possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
-    
     if move_set_calculated == None:
         move_set = []
         best_sequence = None
         moves = []
         best_score = float("-inf")
-               
+        
+        possible_moves = board.generate_possible_moves(player)
+    
+        original_position_fen = board.generate_fen()
+                          
+        board_1 = chess.Board(original_position_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+    
+        row_pieces = []
+        board_line = original_position_fen.strip()
+        ranks = board_line.split("/")
+        for rank in ranks:
+            split_strings = [char for char in rank]
+            row_pieces.append(split_strings)
+            
         for move in possible_moves:
             piece, square_to = move
             board.update(piece, square_to)
@@ -299,12 +299,14 @@ def minimax_with_AB(board, depth, isMaximising, max_depth, player, alpha, beta, 
         for move in possible_moves:
             piece, square_to = move
             board.update(piece, square_to)
-            score, sequence = minimax(board, depth + 1, False, max_depth, player, alpha, beta, current_sequence + [move])
+            score, sequence = minimax_with_AB(board, depth + 1, False, max_depth, player, alpha, beta, current_sequence + [move])
             board.add_pieces(row_pieces)
-            best_score = max(score, best_score)
-            best_sequence = sequence
+
+            if score > best_score:
+                best_score = score
+                best_sequence = sequence
             alpha = max(alpha, best_score)
-            if beta <= alpha:
+            if beta <= alpha:  # Pruning
                 break
         return best_score, best_sequence
     
@@ -325,12 +327,14 @@ def minimax_with_AB(board, depth, isMaximising, max_depth, player, alpha, beta, 
         for move in possible_moves:
             piece, square_to = move
             board.update(piece, square_to)
-            score, sequence = minimax(board, depth + 1, True, max_depth, player, current_sequence + [move])
+            score, sequence = minimax_with_AB(board, depth + 1, True, max_depth, player, alpha, beta, current_sequence + [move])
             board.add_pieces(row_pieces)
-            best_score = max(score, best_score)
-            best_sequence = sequence
+            
+            if score < best_score:
+                best_score = score
+                best_sequence = sequence
             beta = min(beta, best_score)
-            if beta <= alpha:
+            if beta <= alpha:  # Pruning
                 break
         return best_score, best_sequence
     
