@@ -3,7 +3,7 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'  # Hides welcome message of pygame
 import pygame
 import sys
-import random
+from collections import deque
 import time
 from move import Move
 from board import Board
@@ -24,7 +24,7 @@ font = pygame.font.SysFont('Comic Sans MS', 20)
 minimax_text_button = font.render('Minimax', True, COLOUR_NAMES["BLACK"])
 minimax_with_AB_text_button = font.render('Minimax (AB)', True, COLOUR_NAMES["BLACK"])
 DFS_text_button = font.render('DFS', True, COLOUR_NAMES["BLACK"])
-Dumbo_text_button = font.render('Dumbo', True, COLOUR_NAMES["BLACK"])
+BFS_text_button = font.render('BFS', True, COLOUR_NAMES["BLACK"])
 reset_text_button = font.render('Reset', True, COLOUR_NAMES["BLACK"])
 move_set_calculated = None
 current_player = None
@@ -37,6 +37,14 @@ original_fen = None
 def check_game_over(board, player):
     #Check if checkmate or stalemate
     possible_moves = board.generate_possible_moves(player)
+    
+    original_position_fen = board.generate_fen()
+        
+    board_1 = chess.Board(original_position_fen + " " + player)
+    legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+    possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+    
+    
     #print(board.pieces) -- for debugging
     #print(king_in_check) -- for debugging
     if not possible_moves and board.king_in_check:
@@ -382,6 +390,11 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
                 return None
 
         possible_moves = board.generate_possible_moves(player)
+        
+        board_1 = chess.Board(original_position_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+        
         for move in possible_moves:
             piece, square_to = move
             sequence.append(str(move))
@@ -394,7 +407,6 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
                 move_obj = Move(piece, square_to.x, square_to.y)
             moves.append(move_obj)
             #pygame.time.delay(1000)
-            original_piece_square = piece.square
             board.update(piece, square_to)
             result = dfs(board, depth + 1, max_depth, "w" if player == "b" else "b", move, sequence, moves)
 
@@ -411,181 +423,114 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
         return None
     else:
         return move_set_calculated
-
-def dumbo(board, current_player, number_of_moves):
-    #The dumb AI that returns the move that captures the most valuable piece if possible else if no captures returns a random move
+    
+def bfs(board, max_depth, player):
     global move_set_calculated
     global move_index
-    
+    move_index = max_depth
     count = 1
     count_pos_x = 550
     count_pos_y = 100
-    return_set = []
+    moves = []
+    move_set = []
     pos_x = 570
     pos_y = 100
-    number_of_moves *= 2
-    
     if move_set_calculated == None:
-        for move_number in range(number_of_moves):
+        # Initialize BFS with the starting player and first possible move
+        possible_moves = board.generate_possible_moves(player)
+        current_fen = board.generate_fen()
+        board_1 = chess.Board(current_fen + " " + player)
+        legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+        initial_possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+        
+        initial_row_pieces = []
+        board_line = current_fen.strip()
+        ranks = board_line.split("/")
+        for rank in ranks:
+            split_strings = [char for char in rank]
+            initial_row_pieces.append(split_strings)
+        
+        # Initialize BFS queue with the possible moves
+        for move in initial_possible_moves:
+            piece, square_to = move
+            board.update(piece, square_to)
+            temp_player = "b" if player == "w" else "w"
             
-            possible_moves = board.generate_possible_moves(current_player)
-            if current_player == "w":
-                current_player = "b"
-            else:
-                current_player = "w"
-
-            highest_valued_piece_capturable, status, iscapture = get_highest_valued_piece_capturable(board, possible_moves)
+            # Queue stores tuples of (board_state, move_sequence)
+            queue = deque([(board.generate_fen(), [move], 0, temp_player)])
+            visited = set()  # To avoid revisiting the same board states
+            best_sequence = None
             
-            #pygame.time.delay(1000)
-            print(highest_valued_piece_capturable)
-            
-            piece, square = highest_valued_piece_capturable
-            if status == "capture":
-                original_piece_x = piece.square.x
-            if iscapture:
-                if piece.piece_type == "P" or piece.piece_type == "p":
-                    piece_to = None
-                    for p in board.pieces:
-                        if p.square == square:
-                            piece_to = p
-                            
-                    if piece_to:
-                        board.capture(piece, piece_to)
-                        
-                    moves = board.generate_possible_moves(current_player)
-                    if not moves and board.king_in_check:
-                        print(highest_valued_piece_capturable)
-                        print(piece, square)
-                        move = Move(piece, square.x, square.y, original_piece_x, iscapture=True, ischeckmate=True)
-                        break
-                    elif not moves and not board.king_in_check:
-                        print(highest_valued_piece_capturable)
-                        print(piece, square)
-                        move = Move(piece, square.x, square.y, original_piece_x, iscapture=True)
-                        break
-                    else:
-                        print(piece, square)
-                        move = Move(piece, square.x, square.y, original_piece_x, iscapture=True)
-                else:
-                    piece_to = None
-                    for p in board.pieces:
-                        if p.square == square:
-                            piece_to = p
-                            
-                    if piece_to:
-                        board.capture(piece, piece_to)
-                        
-                    moves = board.generate_possible_moves(current_player)
-                    if not moves and board.king_in_check:
-                        print(highest_valued_piece_capturable)
-                        move = Move(piece, square.x, square.y, iscapture=True, ischeckmate=True)
-                        break
-                    elif not moves and not board.king_in_check:
-                        print(highest_valued_piece_capturable)
-                        move = Move(piece, square.x, square.y, iscapture=True)
-                        break
-                    else:
-                        move = Move(piece, square.x, square.y, iscapture=True)
-            else:
-                board.update(piece, square)
-                moves = board.generate_possible_moves(current_player)
-                move = Move(piece, square.x, square.y)
-                if not moves and board.king_in_check:
-                    print("Checkmate!")
-                    move = Move(piece, square.x, square.y, ischeckmate=True)
-                    screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
-                    screen.blit(font.render(str(move), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
-                    return_set.append((move, pos_x, pos_y))
-                    move_set_calculated = return_set
-                    move_index = move_number
-                    return return_set
-                elif not moves and not board.king_in_check:
-                    print("Stalemate!")
-                    move = Move(piece, square.x, square.y)
-                    screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
-                    screen.blit(font.render(str(move), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
-                    return_set.append((move, pos_x, pos_y))
-                    move_set_calculated = return_set
-                    move_index = move_number
-                    return return_set
-                else:
-                    move = Move(piece, square.x, square.y)
-                    
-            return_set.append((move, pos_x, pos_y))
-                                       
-            board.draw_board()
-            for piece in board.pieces:
-                piece.draw(screen)
-            
-            screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
-            screen.blit(font.render(str(move), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
-            
-            pygame.display.flip()
-            
-            if move_number == 0 or move_number == 2 or move_number == 4:
-                pos_x += 70
-            else:
-                count += 1
-                count_pos_y += 60
-                pos_x = 570
-                pos_y += 60
+            while queue:
+                current_fen, current_sequence, depth, current_player = queue.popleft()
                 
-        move_set_calculated = return_set
-        move_index = move_number
-        return return_set
+                row_pieces = []
+                board_line = current_fen.strip()
+                ranks = board_line.split("/")
+                for rank in ranks:
+                    split_strings = [char for char in rank]
+                    row_pieces.append(split_strings)
+                    
+                board.add_pieces(row_pieces)
+                
+                # Check if we've reached the desired depth and if the game is over
+                if depth >= max_depth:
+                    if check_game_over(board, current_player):
+                        best_sequence = current_sequence
+                        board.add_pieces(initial_row_pieces)
+                        for move in best_sequence:
+                            piece, square_to = move
+                            if square_to in board.occupied_squares:
+                                if piece.piece_type == "p" or piece.piece_type == "P":
+                                    move_obj = Move(piece, square_to.x, square_to.y, piece.square.x, iscapture=True)
+                                else:
+                                    move_obj = Move(piece, square_to.x, square_to.y, iscapture=True)
+                            else:
+                                move_obj = Move(piece, square_to.x, square_to.y)
+                            board.update(piece, square_to)
+                            moves.append(move_obj)
+                            
+                        for move in moves:
+                            board.draw_board()
+                            for piece in board.pieces:
+                                piece.draw(screen)
+                            pygame.display.flip()
+                            screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
+                            screen.blit(font.render(str(moves[0]), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
+                            screen.blit(font.render(str(moves[1]), True, COLOUR_NAMES["BLACK"]), (pos_x + 70,pos_y))
+                            screen.blit(font.render(str(moves[2]) + "#", True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y + 60))
+                            move_set.append((str(moves[0]), 570, 100))
+                            move_set.append((str(moves[1]), 640, 100))
+                            move_set.append((str(moves[2]) + "#", 570, 160))
+                            move_set_calculated = move_set
+                            return move_set
+                    continue  # If max depth reached, continue to explore other branches
+
+                # If the current position is not visited, generate next moves
+                if current_fen not in visited:
+                    visited.add(current_fen)
+                    possible_moves = board.generate_possible_moves(current_player)
+                    
+                    board_1 = chess.Board(current_fen + " " + current_player)
+                    legal_moves_uci = [move.uci() for move in board_1.legal_moves]
+                    possible_moves = board.check_for_differences(legal_moves_uci, possible_moves)
+                    
+                    # Explore all the possible moves for the current player
+                    for move in possible_moves:
+                        piece, square_to = move
+                        board.update(piece, square_to)  # Apply the move
+                        next_fen = board.generate_fen()  # Get FEN after the move
+                        next_player = "w" if current_player == "b" else "b"
+                        queue.append((next_fen, current_sequence + [move], depth + 1, next_player))
+                        board.add_pieces(row_pieces)  # Undo the move by restoring FEN
+
+            # After all possible moves have been explored, restore the initial board state
+            board.add_pieces(initial_row_pieces)
+
+        return None  # No solution found
     else:
         return move_set_calculated
-
-def get_highest_valued_piece_capturable(board, possible_moves):
-    # Checks the value of each piece capturable and returns the one that captures the highest
-    pieces = []
-    piece_values = {
-        'P': 1, 'N': 3, 'B': 3, 'R': 5, 'Q': 9, 'K': 0,
-        'p': 1, 'n': 3, 'b': 3, 'r': 5, 'q': 9, 'k': 0
-    }
-    capturable_moves_tuples = []
-    
-    for move in possible_moves:
-        piece, square_to = move
-        for piece in board.pieces:
-            if square_to == piece.square:
-                pieces.append((move,piece))
-                
-    for piece in pieces:
-        move, p = piece
-        score = piece_values[p.piece_type]
-        capturable_moves_tuples.append((move,score))
-        
-    max_score = 0
-    best_moves = []
-    for moves in capturable_moves_tuples:
-        move, score = moves
-        if (score >= max_score):
-            if best_moves:
-                if (score > max_score):
-                    max_score = score
-                    best_moves.pop(0)
-                    best_moves.append(move)
-                else:
-                    max_score = score
-                    best_moves.append(move)
-            else:
-                max_score = score
-                best_moves.append(move)
-    
-    if len(best_moves) > 1:
-        return (random.choice(best_moves), "capture", True)
-    elif not best_moves: #No captures
-        if possible_moves:
-            return (random.choice(possible_moves), "not checkmate", False)
-        else:
-            if board.king_in_check:
-                return ("Checkmate!", "checkmate", False)
-            else:
-                return ("Draw!", "draw", False)
-    else:
-        return (best_moves[0], "capture", True)
-     
+         
 # ______________________________Algorithm clicks checker_________________________________________
 
 def check_algorithm_request(event):
@@ -600,10 +545,10 @@ def check_algorithm_request(event):
     if 355 < x < 425 and 610 < y < 660:
         print("DFS")
         return "DFS"
-    if 455 < x < 550 and 610 < y < 660:
-        print("Dumbo")
-        return "Dumbo"
-    if 580 < x < 670 and 610 < y < 660:
+    if 455 < x < 530 and 610 < y < 660:
+        print("BFS")
+        return "BFS"
+    if 560 < x < 650 and 610 < y < 660:
         print("Reset")
         return "Reset"
         
@@ -688,23 +633,7 @@ def main():
     board.draw_board()
     board.add_pieces(row_pieces)
     board.draw_pieces()
-    
-    # my_legal_moves = board.generate_possible_moves(current_player)
-    
-    # fen = original_fen + " " + current_player
-
-    # # Initialize the board
-    # board_1 = chess.Board(fen)
-
-    # # Generate legal moves and convert them to UCI format
-    # legal_moves_uci = [move.uci() for move in board_1.legal_moves]
-
-    # # Print the UCI moves
-    # print(legal_moves_uci)
-    
-    # possible_moves = board.check_for_differences(legal_moves_uci, my_legal_moves)
-    # print("not so dumb my list",possible_moves)
-        
+            
     running = True
     #Main pygame loop
     while running:
@@ -727,9 +656,9 @@ def main():
                 duration_time = round(end_time - start_time, 4)
                 duration = True
         
-        if algorithm == "Dumbo":
+        if algorithm == "BFS":
             start_time = time.time()
-            move_set = dumbo(board, current_player, number_of_moves)
+            move_set = bfs(board, number_of_moves, current_player)
             end_time = time.time()
             if not duration:
                 duration_time = round(end_time - start_time, 4)
@@ -788,12 +717,12 @@ def main():
         pygame.draw.rect(screen,COLOUR_NAMES["WHITE"], (355, 610, 70, 50))
         pygame.draw.rect(screen, COLOUR_NAMES["BLACK"], (355, 610, 70, 50), 1)
         screen.blit(DFS_text_button, (370, 620))
-        pygame.draw.rect(screen,COLOUR_NAMES["WHITE"], (455, 610, 95, 50))
-        pygame.draw.rect(screen, COLOUR_NAMES["BLACK"], (455, 610, 95, 50), 1)
-        screen.blit(Dumbo_text_button, (470, 620))
-        pygame.draw.rect(screen,COLOUR_NAMES["WHITE"], (580, 610, 90, 50))
-        pygame.draw.rect(screen, COLOUR_NAMES["BLACK"], (580, 610, 90, 50), 1)
-        screen.blit(reset_text_button, (595, 620))
+        pygame.draw.rect(screen,COLOUR_NAMES["WHITE"], (455, 610, 75, 50))
+        pygame.draw.rect(screen, COLOUR_NAMES["BLACK"], (455, 610, 75, 50), 1)
+        screen.blit(BFS_text_button, (470, 620))
+        pygame.draw.rect(screen,COLOUR_NAMES["WHITE"], (560, 610, 90, 50))
+        pygame.draw.rect(screen, COLOUR_NAMES["BLACK"], (560, 610, 90, 50), 1)
+        screen.blit(reset_text_button, (575, 620))
         board.draw_board()
         for piece in board.pieces:
             piece.draw(screen)
