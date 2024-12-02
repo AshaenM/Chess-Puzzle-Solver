@@ -51,6 +51,36 @@ def check_game_over(board, player):
         return True
     else:
         return False 
+    
+def display_moves(board, moves):
+    count_pos_x = 550
+    count_pos_y = 100
+    pos_x = 570
+    pos_y = 100
+    count = 1
+    move_set = []
+    move_offset_y = 60  # Vertical offset between moves
+    move_offset_x = 70  # Horizontal offset between columns
+
+    board.draw_board()  # Draw board before displaying moves
+    for piece in board.pieces:
+        piece.draw(screen)
+    pygame.display.flip()
+
+    # Display move count
+    screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x, count_pos_y))
+
+    # Loop through all moves and display them
+    for i, move in enumerate(moves):
+        move_text = f"{move}#" if i == len(moves) - 1 else str(move)  # Add '#' for the final move if it's a mate
+        move_x = pos_x + (i % 2) * move_offset_x  # Alternate X position for two columns
+        move_y = pos_y + (i // 2) * move_offset_y  # Adjust Y position based on index
+
+        screen.blit(font.render(move_text, True, COLOUR_NAMES["BLACK"]), (move_x, move_y))
+        move_set.append((move_text, move_x, move_y))
+
+    pygame.display.update()  # Update the display after rendering all moves
+    return move_set
 
 # ______________________________Search algorithms_________________________________________
 
@@ -59,10 +89,10 @@ def get_best_move(board, max_depth, player):
     global move_index
     global move_set_calculated
     
+    max_depth = max_depth + max_depth - 1
     move_index = max_depth
     
     if move_set_calculated == None:
-        move_set = []
         best_sequence = None
         moves = []
         best_score = float("-inf")
@@ -85,18 +115,13 @@ def get_best_move(board, max_depth, player):
         for move in possible_moves:
             piece, square_to = move
             board.update(piece, square_to)
-            score, sequence = minimax(board, 0, False, max_depth, player, current_sequence=[move])  # Pass first move in the sequence
+            score, sequence = minimax(board, 1, False, max_depth, player, current_sequence=[move])  # Pass first move in the sequence
             board.add_pieces(row_pieces)
             if score > best_score:
                 best_score = score
                 best_sequence = sequence
         print(best_sequence)
         
-        count = 1
-        count_pos_x = 550
-        count_pos_y = 100
-        pos_x = 570
-        pos_y = 100
         for move in best_sequence:
             piece, square_to = move
             if square_to in board.occupied_squares:
@@ -109,20 +134,8 @@ def get_best_move(board, max_depth, player):
             board.update(piece, square_to)
             moves.append(move_obj)
             
-        for move in moves:
-            board.draw_board()
-            for piece in board.pieces:
-                piece.draw(screen)
-            pygame.display.flip()
-            screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
-            screen.blit(font.render(str(moves[0]), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
-            screen.blit(font.render(str(moves[1]), True, COLOUR_NAMES["BLACK"]), (pos_x + 70,pos_y))
-            screen.blit(font.render(str(moves[2]) + "#", True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y + 60))
-            move_set.append((str(moves[0]), 570, 100))
-            move_set.append((str(moves[1]), 640, 100))
-            move_set.append((str(moves[2]) + "#", 570, 160))
-            move_set_calculated = move_set
-            return move_set
+        move_set_calculated = display_moves(board, moves)
+        return move_set_calculated
     else:
         return move_set_calculated
 
@@ -201,11 +214,10 @@ def get_best_move_with_AB(board, max_depth, player):
     #Manages the minimax algorithm that has alpha beta pruning 
     global move_index
     global move_set_calculated
-    
+    max_depth = max_depth + max_depth - 1
     move_index = max_depth
     
     if move_set_calculated == None:
-        move_set = []
         best_sequence = None
         moves = []
         best_score = float("-inf")
@@ -228,18 +240,13 @@ def get_best_move_with_AB(board, max_depth, player):
         for move in possible_moves:
             piece, square_to = move
             board.update(piece, square_to)
-            score, sequence = minimax_with_AB(board, 0, False, max_depth, player, float("-inf"), float("inf"), current_sequence=[move])  # Pass first move in the sequence
+            score, sequence = minimax_with_AB(board, 1, False, max_depth, player, float("-inf"), float("inf"), current_sequence=[move])  # Pass first move in the sequence
             board.add_pieces(row_pieces)
             if score > best_score:
                 best_score = score
                 best_sequence = sequence
         print(best_sequence)
         
-        count = 1
-        count_pos_x = 550
-        count_pos_y = 100
-        pos_x = 570
-        pos_y = 100
         for move in best_sequence:
             piece, square_to = move
             if square_to in board.occupied_squares:
@@ -252,20 +259,8 @@ def get_best_move_with_AB(board, max_depth, player):
             board.update(piece, square_to)
             moves.append(move_obj)
             
-        for move in moves:
-            board.draw_board()
-            for piece in board.pieces:
-                piece.draw(screen)
-            pygame.display.flip()
-            screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
-            screen.blit(font.render(str(moves[0]), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
-            screen.blit(font.render(str(moves[1]), True, COLOUR_NAMES["BLACK"]), (pos_x + 70,pos_y))
-            screen.blit(font.render(str(moves[2]) + "#", True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y + 60))
-            move_set.append((str(moves[0]), 570, 100))
-            move_set.append((str(moves[1]), 640, 100))
-            move_set.append((str(moves[2]) + "#", 570, 160))
-            move_set_calculated = move_set
-            return move_set
+        move_set_calculated = display_moves(board, moves)
+        return move_set_calculated
     else:
         return move_set_calculated
 
@@ -351,7 +346,7 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
     #The DFS search algorithm that recursively calls itself until it reaches the limit
     global move_index
     global move_set_calculated
-
+    
     move_index = max_depth
     
     original_position_fen = board.generate_fen()
@@ -363,29 +358,11 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
         row_pieces.append(split_strings)
         
     if move_set_calculated == None:
-        if depth == max_depth+1:
+        if depth >= max_depth + max_depth - 1:
             if check_game_over(board, player):
                 print(sequence)
-                move_set = []
-                count = 1
-                count_pos_x = 550
-                count_pos_y = 100
-                pos_x = 570
-                pos_y = 100
-                for move in moves:
-                    board.draw_board()
-                    for piece in board.pieces:
-                        piece.draw(screen)
-                    pygame.display.flip()
-                screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
-                screen.blit(font.render(str(moves[0]), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
-                screen.blit(font.render(str(moves[1]), True, COLOUR_NAMES["BLACK"]), (pos_x + 70,pos_y))
-                screen.blit(font.render(str(moves[2]) + "#", True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y + 60))
-                move_set.append((str(moves[0]), 570, 100))
-                move_set.append((str(moves[1]), 640, 100))
-                move_set.append((str(moves[2]) + "#", 570, 160))
-                move_set_calculated = move_set
-                return move_set
+                move_set_calculated = display_moves(board, moves)
+                return move_set_calculated
             else:
                 return None
 
@@ -397,6 +374,7 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
         
         for move in possible_moves:
             piece, square_to = move
+            print(move)
             sequence.append(str(move))
             if square_to in board.occupied_squares:
                 if piece.piece_type == "p" or piece.piece_type == "P":
@@ -406,7 +384,7 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
             else:
                 move_obj = Move(piece, square_to.x, square_to.y)
             moves.append(move_obj)
-            #pygame.time.delay(1000)
+            
             board.update(piece, square_to)
             result = dfs(board, depth + 1, max_depth, "w" if player == "b" else "b", move, sequence, moves)
 
@@ -415,7 +393,7 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
                 sequence.pop()
                 moves.remove(move_obj)
                 
-            if depth == 2:
+            if depth == max_depth:
                 board.captured_pieces = []
 
             if result is not None:
@@ -427,14 +405,10 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
 def bfs(board, max_depth, player):
     global move_set_calculated
     global move_index
+    
     move_index = max_depth
-    count = 1
-    count_pos_x = 550
-    count_pos_y = 100
     moves = []
-    move_set = []
-    pos_x = 570
-    pos_y = 100
+    
     if move_set_calculated == None:
         # Initialize BFS with the starting player and first possible move
         possible_moves = board.generate_possible_moves(player)
@@ -477,6 +451,7 @@ def bfs(board, max_depth, player):
                 if depth >= max_depth:
                     if check_game_over(board, current_player):
                         best_sequence = current_sequence
+                        print(best_sequence)
                         board.add_pieces(initial_row_pieces)
                         for move in best_sequence:
                             piece, square_to = move
@@ -489,21 +464,8 @@ def bfs(board, max_depth, player):
                                 move_obj = Move(piece, square_to.x, square_to.y)
                             board.update(piece, square_to)
                             moves.append(move_obj)
-                            
-                        for move in moves:
-                            board.draw_board()
-                            for piece in board.pieces:
-                                piece.draw(screen)
-                            pygame.display.flip()
-                            screen.blit(font.render(str(count), True, COLOUR_NAMES["BLACK"]), (count_pos_x,count_pos_y))
-                            screen.blit(font.render(str(moves[0]), True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y))
-                            screen.blit(font.render(str(moves[1]), True, COLOUR_NAMES["BLACK"]), (pos_x + 70,pos_y))
-                            screen.blit(font.render(str(moves[2]) + "#", True, COLOUR_NAMES["BLACK"]), (pos_x,pos_y + 60))
-                            move_set.append((str(moves[0]), 570, 100))
-                            move_set.append((str(moves[1]), 640, 100))
-                            move_set.append((str(moves[2]) + "#", 570, 160))
-                            move_set_calculated = move_set
-                            return move_set
+                        move_set_calculated = display_moves(board, moves)
+                        return move_set_calculated
                     continue  # If max depth reached, continue to explore other branches
 
                 # If the current position is not visited, generate next moves
@@ -684,21 +646,37 @@ def main():
                 duration = True
             
         if move_set:
-            #Render moves for each algorithm
-            for set in move_set:
-                move, x, y = set
-                if number_of_moves == 1:
-                    screen.blit(font.render(str(move), True, COLOUR_NAMES["BLACK"]), (x,y))
-                    screen.blit(font.render(str(1), True, COLOUR_NAMES["BLACK"]), (550,100))
-                elif number_of_moves == 2:
-                    screen.blit(font.render(str(move), True, COLOUR_NAMES["BLACK"]), (x,y))
-                    screen.blit(font.render(str(1), True, COLOUR_NAMES["BLACK"]), (550,100))
-                    screen.blit(font.render(str(2), True, COLOUR_NAMES["BLACK"]), (550,160))
-                    if move_index > 1:
-                        screen.blit(font.render(str(2), True, COLOUR_NAMES["BLACK"]), (550,160))
-            screen.blit(font.render("Time: ", True, COLOUR_NAMES["BLACK"]), (550, 220))
-            screen.blit(font.render(str(duration_time), True, COLOUR_NAMES["BLACK"]), (620, 220))
-        
+            y_offset = 100  # Initial Y position for moves
+            y_step = 40     # Space between rows
+            
+            x_number_offset = 550  # X position for move numbers
+            x_white_move_offset = 570  # X position for White's move
+            x_black_move_offset = 635  # X position for Black's move
+
+            move_pairs = []  # To store pairs of moves (White, Black)
+
+            # Group moves into pairs
+            for i in range(0, len(move_set), 2):
+                white_move = move_set[i]
+                black_move = move_set[i + 1] if i + 1 < len(move_set) else None
+                move_pairs.append((white_move, black_move))
+
+            # Render each pair of moves
+            for row_index, (white_move, black_move) in enumerate(move_pairs):
+                # Display the move number and White's move
+                move_number = row_index + 1
+                screen.blit(font.render(str(move_number), True, COLOUR_NAMES["BLACK"]), (x_number_offset, y_offset + row_index * y_step))
+                screen.blit(font.render(str(white_move[0]), True, COLOUR_NAMES["BLACK"]), (x_white_move_offset, y_offset + row_index * y_step))
+
+                # Display Black's move if available
+                if black_move:
+                    screen.blit(font.render(str(black_move[0]), True, COLOUR_NAMES["BLACK"]), (x_black_move_offset, y_offset + row_index * y_step))
+
+            # Display the time below all moves
+            screen.blit(font.render("Time: ", True, COLOUR_NAMES["BLACK"]), (x_number_offset, y_offset + len(move_pairs) * y_step + 20))
+            screen.blit(font.render(str(duration_time), True, COLOUR_NAMES["BLACK"]), (620, y_offset + len(move_pairs) * y_step + 20))
+
+
         if algorithm == "Reset":
             board.draw_board()
             board.add_pieces(row_pieces)
