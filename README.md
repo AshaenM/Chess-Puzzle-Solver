@@ -6,6 +6,7 @@ The Chess Puzzle Solving AI Project is an advanced new take of the chess game wh
 - AI algorithms: Minimax, Minimax with Alpha-Beta Pruning, Depth-First Search (DFS), Breadth-First Search (BFS) solve the puzzles.
 - User's choice: The user gets to select which algorithm solves the puzzle and then observes the solution along with the time taken.
 - UI interface: The UI shows the original position of the puzzle and then the final position once the puzzle is solved along with the moves in chess notation.
+- Currently, all the AI work for 1,2 and 3 move checkmate puzzles, but the dfs and bfs algorithms dont work for some 3 move mates, mostly when its a Black to move puzzle.
 
 # Technologies Used
 - Programming Language: Python

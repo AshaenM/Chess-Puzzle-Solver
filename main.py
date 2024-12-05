@@ -374,7 +374,6 @@ def dfs(board, depth, max_depth, player, move, sequence, moves):
         
         for move in possible_moves:
             piece, square_to = move
-            print(move)
             sequence.append(str(move))
             if square_to in board.occupied_squares:
                 if piece.piece_type == "p" or piece.piece_type == "P":
@@ -423,6 +422,30 @@ def bfs(board, max_depth, player):
         for rank in ranks:
             split_strings = [char for char in rank]
             initial_row_pieces.append(split_strings)
+            
+        if max_depth == 1:
+            for move in initial_possible_moves:
+                piece, square_to = move
+                board.update(piece, square_to)
+                temp_player = "b" if player == "w" else "w"       
+
+                if check_game_over(board, temp_player):
+                    best_sequence = move
+                    print(best_sequence)
+                    board.add_pieces(initial_row_pieces)
+                    if square_to in board.occupied_squares:
+                        if piece.piece_type == "p" or piece.piece_type == "P":
+                            move_obj = Move(piece, square_to.x, square_to.y, piece.square.x, iscapture=True)
+                        else:
+                            move_obj = Move(piece, square_to.x, square_to.y, iscapture=True)
+                    else:
+                        move_obj = Move(piece, square_to.x, square_to.y)
+                    board.update(piece, square_to)
+                    moves.append(move_obj)
+                    move_set_calculated = display_moves(board, moves)
+                    return move_set_calculated
+                board.add_pieces(initial_row_pieces)
+            best_sequence = None
         
         # Initialize BFS queue with the possible moves
         for move in initial_possible_moves:
@@ -489,6 +512,7 @@ def bfs(board, max_depth, player):
             # After all possible moves have been explored, restore the initial board state
             board.add_pieces(initial_row_pieces)
 
+        print("Nothing")
         return None  # No solution found
     else:
         return move_set_calculated
