@@ -471,7 +471,7 @@ def bfs(board, max_depth, player):
                 board.add_pieces(row_pieces)
                 
                 # Check if we've reached the desired depth and if the game is over
-                if depth >= max_depth:
+                if (depth >= max_depth and max_depth != 3) or (depth == 4 and max_depth == 3):
                     if check_game_over(board, current_player):
                         best_sequence = current_sequence
                         print(best_sequence)
@@ -512,7 +512,6 @@ def bfs(board, max_depth, player):
             # After all possible moves have been explored, restore the initial board state
             board.add_pieces(initial_row_pieces)
 
-        print("Nothing")
         return None  # No solution found
     else:
         return move_set_calculated
